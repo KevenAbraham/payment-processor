@@ -7,12 +7,13 @@ Estilo do código:
 - Generics (type Foo[F any]) só quando o motor é genuinamente independente do dominio (maquina de estados, um cache, um batcher). Nunca como troca de interface{}, tentando evitar escrever o tipo concreto.
 - Testes não devem ser table-driven por padrão. Um fake de teste implementa a interface minima da porta, sem framework de mock.~
 - Nao devera ter funcoes ou metodos que sao usados somente no codigo.
+- Evite ponteiros por padrao
 
 Arquitetura:
 - domain/ não importa nada além de stdlib.
 - usecase/ orquestra só contra interface (portas), nunca contra infraestrutura concreta.
 - infra/ implementa as portas (Postgres, gRPC, Kafka, HTTP externo)
-- adapter/ traduz transporte (proto <=> dominio)
+- handler/ traduz transporte (proto <=> dominio)
 - pkg/ é compartilhado entre servicos e nao conhece nada do dominio de pagamentos
 
 Antes de considerar uma tarefa concluida:
