@@ -28,8 +28,8 @@ type (
 		shards [shardCount]*shard[V]
 		ttl    time.Duration
 		now    func() time.Time
-		stop   chan struct{} // fechar o canal do cache
-		once   sync.Once     // mesmo que o close fosse chamado varias vezes, o once garante apenas uma execucao.
+		stop   chan struct{}
+		once   sync.Once 
 	}
 )
 
@@ -45,7 +45,6 @@ func New[V any](ttl, sweepEvery time.Duration) *Cache[V] {
 		c.shards[i] = &shard[V]{items: make(map[string]entry[V])}
 	}
 
-	// TODO: inicializar os shards.
 	go c.janitor(sweepEvery)
 	return c
 }
@@ -94,9 +93,7 @@ func (c *Cache[V]) Set(key string, value V) error {
 	return c.SetTTL(key, value, c.ttl)
 }
 
-// Increment adds delta to an integer counter stored at key returns
-// the new total. Counters share default TTL, refreshed on write.
-// It is the primitive behind velocity checks.
+// Increment adds delta to an integer counter stored at key returns the new total. Counters share default TTL, refreshed on write. It is the primitive behind velocity checks.
 func (c *Cache[V]) Increment(key string, counter func(current V, exists bool) V) (V, error) {
 	if key == "" {
 		var zero V
