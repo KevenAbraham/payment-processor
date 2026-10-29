@@ -1,4 +1,4 @@
-// Package fsm provides a miniaml deterministic finite state machine. It is designed for orchestrating
+// Package fsm provides a minimal deterministic finite state machine. It is designed for orchestrating
 // multi-step decision pipelines where every transition must be explicit and observable
 package fsm
 
@@ -24,18 +24,18 @@ type (
 	// Machine is a deterministic FSM. Build it once and reuse it across goroutines.
 	// Run state lives in the data arguments, not in the machine.
 	Machine[T any] struct {
-		initial State // estado em que toda execução começa. O inicio da maquina de estado.
-		handlers map[State]Handler[T] // uma funcao por estado registrado. Handlers com base no estado. Estado inicial = qual o handler para os dados que estão no estado inicial? Estado terminal = qual o handler para os dados que estão no estado terminal?
-		terminals map[State]bool // quais estados encerram a execucao. Pode ser que eu tenha que termine por que o estado é de erro, fraude, done, pago, aceito etc. 
-		fallbacks map[State]State // pra onde ir se o handler falhar. Para quais states vão se falhar.  
-		maxHops int // trava de segurança contra loop infinito. POis temos um state que vai para um state, que vai pra um booleano, e vai para outro handler. O maxhops é uma trava contra um loop infinito.
+		initial State
+		handlers map[State]Handler[T]
+		terminals map[State]bool
+		fallbacks map[State]State  
+		maxHops int
 	}
 
 	Option[T any] func(*Machine[T])
 )
 
 // ErrNoTransition is returned when a handler produces a state that has no register handler and is not a terminal state
-var ErrNoTransition = errors.New("fsm: no transition registered for state") // sentinel error
+var ErrNoTransition = errors.New("fsm: no transition registered for state")
 
 func WithMaxHops[T any](n int) Option[T] {
 	return func(m *Machine[T]) {
