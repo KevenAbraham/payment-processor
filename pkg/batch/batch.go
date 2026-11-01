@@ -1,5 +1,5 @@
-// Package Batch implements a dynamic batcher. Callers submit items individually, 
-// and the batcher groups them by size or time window, whichever happens first. 
+// Package Batch implements a dynamic batcher. Callers submit items individually,
+// and the batcher groups them by size or time window, whichever happens first.
 // This trades a small bounded latency for a large gain in throughput on the downstream call.
 package batch
 
@@ -13,7 +13,7 @@ import (
 var ErrClosed = errors.New("batch: batcher is closed")
 
 type (
-	// Flusher processess a fuill batch. The implementation must be safe for 
+	// Flusher processess a fuill batch. The implementation must be safe for
 	// concurrent calls because two windows can overlap under load.
 	Flusher[In any, Out any] func(ctx context.Context, items []In) ([]Out, error)
 
@@ -60,14 +60,17 @@ func (b *Batcher[In, Out]) Submit(ctx context.Context, item In) (Out, error) {
 	var zero Out
 
 	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	if b.closed {
+		b.mu.Unlock()
 		return zero, ErrClosed
 	}
 
-	req := request[In, Out]{items: item, resp: make(chan result[Out])}
+	req := request[In, Out]{
+		items: item,
+		resp:  make(chan result[Out], 1),
+	}
 	b.queue <- req
+	b.mu.Unlock()
 
 	select {
 	case res := <-req.resp:
@@ -98,7 +101,7 @@ func (b *Batcher[In, Out]) dispatch(batch []request[In, Out]) {
 	}
 
 	outs, err := b.flush(context.Background(), items) // context.Background() significa que o contexto está vazio? Tudo isso para nao quebrar.
-	if err != nil && len(outs) != len(batch) {
+	if err == nil && len(outs) != len(batch) {
 		err = errors.New("batch: flusher returned wrong number of results")
 	}
 
@@ -121,7 +124,9 @@ func (b *Batcher[In, Out]) loop() {
 	defer timer.Stop()
 
 	flushPending := func() {
-		if len(pending) == 0 { return }
+		if len(pending) == 0 {
+			return
+		}
 		batch := pending
 		pending = make([]request[In, Out], 0, b.maxSize)
 		b.dispatch(batch)
@@ -130,7 +135,10 @@ func (b *Batcher[In, Out]) loop() {
 	for {
 		select {
 		case req, ok := <-b.queue:
-			if !ok { flushPending(); return }
+			if !ok {
+				flushPending()
+				return
+			}
 
 			pending = append(pending, req)
 			if len(pending) == 1 {
